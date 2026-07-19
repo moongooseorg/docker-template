@@ -67,4 +67,4 @@ jobs:
           docker save "$IMAGE" | $SSH docker load
           $SSH "mkdir -p '$APP_DIR'"
           $SSH "cat > '$APP_DIR/docker-compose.yml'" < docker-compose.yml
-          $SSH "cd '$APP_DIR' && IMAGE='$IMAGE' HOST_PORT='${{ env.HOST_PORT }}' docker compose up -d"
+          $SSH "cd '$APP_DIR' && IMAGE='$IMAGE' HOST_PORT='${{ env.HOST_PORT }}' APP_NAME='${{ env.APP_NAME }}' docker compose up -d"
