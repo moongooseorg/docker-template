@@ -61,7 +61,7 @@ jobs:
       - name: Deploy to target Pi
         env:
           IMAGE: ${{ needs.build.outputs.image }}:latest
-          APP_DIR: /opt/${{ env.APP_NAME }}
+          APP_DIR: /home/runner/apps/${{ env.APP_NAME }}
           SSH: ssh -o StrictHostKeyChecking=accept-new -i /home/runner/.ssh/deploy_key runner@${{ env.TARGET_IP }}
         run: |
           docker save "$IMAGE" | $SSH docker load
