@@ -18,13 +18,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      image: ${{ steps.meta.outputs.image }}
+      ghcr: ${{ steps.meta.outputs.ghcr }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Compute image name
         id: meta
-        run: echo "image=${APP_NAME,,}" >> "$GITHUB_OUTPUT"
+        run: |
+          owner="${{ github.repository_owner }}"
+          echo "ghcr=ghcr.io/${owner,,}/${APP_NAME,,}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -42,7 +44,7 @@ jobs:
           context: .
           platforms: linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.image }}:latest
+          tags: ${{ steps.meta.outputs.ghcr }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -56,14 +58,16 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull image on runner
-        run: docker pull ${{ needs.build.outputs.image }}:latest
+        run: docker pull ${{ needs.build.outputs.ghcr }}:latest
 
       - name: Deploy to target Pi
         env:
-          IMAGE: ${{ needs.build.outputs.image }}:latest
+          GHCR_IMAGE: ${{ needs.build.outputs.ghcr }}:latest
           APP_DIR: /home/runner/apps/${{ env.APP_NAME }}
           SSH: ssh -o StrictHostKeyChecking=accept-new -i /home/runner/.ssh/deploy_key runner@${{ env.TARGET_IP }}
         run: |
+          IMAGE="${APP_NAME,,}"
+          docker tag "$GHCR_IMAGE" "$IMAGE"
           docker save "$IMAGE" | $SSH docker load
           $SSH "mkdir -p '$APP_DIR'"
           $SSH "cat > '$APP_DIR/docker-compose.yml'" < docker-compose.yml
